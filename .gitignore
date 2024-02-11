@@ -1,0 +1,4 @@
+venv/*
+images/**/*
+stereoMap.xml
+calibration_data/*
