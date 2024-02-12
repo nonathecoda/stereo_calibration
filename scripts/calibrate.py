@@ -79,6 +79,9 @@ retR, cameraMatrixR, distR, rvecsR, tvecsR = cv.calibrateCamera(objpoints, imgpo
 heightR, widthR, channelsR = imgR.shape
 #newCameraMatrixR, roi_R = cv.getOptimalNewCameraMatrix(cameraMatrixR, distR, (widthR, heightR), 1, (widthR, heightR))
 
+ic(retL)
+ic(retR)
+
 # shows undistorted image left
 image_l = cv.imread("images/test/left/test.jpg")
 undistorted_image_l = cv.undistort(image_l, cameraMatrixL, distL)

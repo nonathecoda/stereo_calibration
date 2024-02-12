@@ -1,30 +1,31 @@
 from icecream import ic
-import numpy as np
 import cv2
+import numpy as np
+import cv2, PIL, os
+from cv2 import aruco
+#from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import glob
 
+ARUCO_DICT = cv2.aruco.DICT_4X4_250
+SQUARES_VERTICALLY = 26
+SQUARES_HORIZONTALLY = 12
+SQUARE_LENGTH = 0.1
+MARKER_LENGTH = 0.075
+LENGTH_PX = int(SQUARE_LENGTH*SQUARES_VERTICALLY*1000)  # total length of the page in pixels
+MARGIN_PX = 0    # size of the margin in pixels
+SAVE_NAME = '/Users/antonia/dev/masterthesis/stereo_calibration/ChArUco_Marker_large.png'
+# ------------------------------
 
-# Camera parameters to undistort and rectify images
-cv_file = cv2.FileStorage()
-cv_file.open('/Users/antonia/dev/masterthesis/stereo_calibration/calibration_data/stereoMap.xml', cv2.FileStorage_READ)
+aruco_dict = cv2.aruco.getPredefinedDictionary(ARUCO_DICT)
+board = cv2.aruco.CharucoBoard((SQUARES_VERTICALLY, SQUARES_HORIZONTALLY), SQUARE_LENGTH, MARKER_LENGTH, aruco_dict)
+board.setLegacyPattern(True)
+size_ratio = SQUARES_HORIZONTALLY / SQUARES_VERTICALLY
+img = cv2.aruco.CharucoBoard.generateImage(board, (LENGTH_PX, int(LENGTH_PX*size_ratio)), marginSize=MARGIN_PX)
 
-stereoMapL_x = cv_file.getNode('stereoMapL_x').mat()
-stereoMapL_y = cv_file.getNode('stereoMapL_y').mat()
-stereoMapR_x = cv_file.getNode('stereoMapR_x').mat()
-stereoMapR_y = cv_file.getNode('stereoMapR_y').mat()
-
-frame_right = cv2.imread("images/test/right/test.jpg")
-frame_left = cv2.imread("images/test/left/test.jpg")
-
-ic(frame_right.shape)
-ic(frame_left.shape)
-
-
-# Undistort and rectify images
-frame_right = cv2.remap(frame_right, stereoMapR_x, stereoMapR_y, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
-frame_left = cv2.remap(frame_left, stereoMapL_x, stereoMapL_y, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
-                    
-# Show the frames
-cv2.imshow("frame right", frame_right) 
-cv2.imshow("frame left", frame_left)
+cv2.imshow("test", img)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+cv2.imwrite(SAVE_NAME, img)
