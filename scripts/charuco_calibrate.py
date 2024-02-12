@@ -7,6 +7,30 @@ from cv2 import aruco
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import glob
+
+
+def draw_results(imgPoints_int, imgPoints_matchimgPoints, objPoints, img):
+    img = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
+    
+    for point in imgPoints_matchimgPoints:
+        point = (int(point[0, 0]), int(point[0, 1]))
+        ic(point)
+        cv2.circle(img, point, radius=5, color=(255, 0, 0), thickness=-1) # BLUE
+    for point in imgPoints_int:
+        point = (int(point[0, 0]), int(point[0, 1]))
+        ic(point)
+        cv2.circle(img, point, radius=5, color=(0, 255, 0), thickness=-1) # GREEN
+    for point in objPoints:
+        point = (int(point[0, 0]), int(point[0, 1]))
+        ic(point)
+        cv2.circle(img, point, radius=5, color=(0, 0, 255), thickness=-1)    # RED
+    
+    ic(img.shape)
+    cv2.imshow('Image with Points', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    exit()
+
 # ------------------------------
 # ENTER YOUR PARAMETERS HERE:
 ARUCO_DICT = cv2.aruco.DICT_4X4_100
@@ -37,7 +61,14 @@ allCornersR = []
 allIdsR = []
 decimatorL = 0
 decimatorR=0
+objpoints = [] # 3d point in real world space
 
+objp = np.zeros(((SQUARES_VERTICALLY-1) * (SQUARES_HORIZONTALLY-1), 3), np.float32)
+objp[:,:2] = np.mgrid[0:(SQUARES_VERTICALLY-1),0:(SQUARES_HORIZONTALLY-1)].T.reshape(-1,2)
+
+objp = objp * SQUARE_LENGTH # should this be in mm? right now its in meters
+ic(objp.shape)
+#exit()
 frameSize = (3280,2464)
 
 # SUB PIXEL CORNER DETECTION CRITERION
@@ -60,34 +91,46 @@ for imgLeft, imgRight in zip(imagesLeft, imagesRight):
     cornersR, idsR, rejectedImgPointsR = cv2.aruco.detectMarkers(grayR, aruco_dict, parameters=params)
     
     if len(cornersL) > 0 and len(cornersR) > 0:
-        ic("# SUB PIXEL DETECTION LEFT")
-        # SUB PIXEL DETECTION LEFT
+    
+        ################## LEFT ##################
         for corner in cornersL:
             cv2.cornerSubPix(grayL, corner,
                                 winSize = (3,3),
                                 zeroZone = (-1,-1),
                                 criteria = criteria)
         res2L = cv2.aruco.interpolateCornersCharuco(cornersL,idsL,grayL,board)
-        if res2L[1] is not None and res2L[2] is not None and len(res2L[1])>3 and decimatorL%1==0:
-            allCornersL.append(res2L[1])
-            allIdsL.append(res2L[2])
+        objpoints_L, imgpoints_L = cv2.aruco.CharucoBoard.matchImagePoints(board, res2L[1], res2L[2])
+        #objpoints_L, imgpoints_L = cv2.aruco.getBoardObjectAndImagePoints(board, res2L[1], res2L[2])
 
-        # SUB PIXEL DETECTION RIGHT
+        ################## RIGHT ##################
         for corner in cornersR:
             cv2.cornerSubPix(grayR, corner,
                                 winSize = (3,3),
                                 zeroZone = (-1,-1),
                                 criteria = criteria)
         res2R = cv2.aruco.interpolateCornersCharuco(cornersR,idsR,grayR,board)
-        if res2R[1] is not None and res2R[2] is not None and len(res2R[1])>3 and decimatorR%1==0:
+        objpoints_R, imgpoints_R = cv2.aruco.CharucoBoard.matchImagePoints(board, res2R[1], res2R[2])
+        #objpoints_R, imgpoints_R = cv2.aruco.getBoardObjectAndImagePoints(board, res2R[1], res2R[2])
+        # seems like imgpoints_R is the same as res2R[1]
+        
+        ################## TOTAL ##################
+        if len(res2L[1]) == len(res2R[1]) and len(res2L[1]) > 3:
+            allCornersL.append(res2L[1])
+            allIdsL.append(res2L[2])
+            objpoints.append(objpoints_L* SQUARE_LENGTH*100)
             allCornersR.append(res2R[1])
             allIdsR.append(res2R[2])
+            #draw_results(res2L[1], imgpoints_L, objpoints_L, grayL)
 
     decimatorL+=1
     decimatorR+=1
 
+
 retvalL, camera_matrixL, dist_coeffsL, rvecsL, tvecsL = cv2.aruco.calibrateCameraCharuco(allCornersL, allIdsL, board, frameSize, None, None)
+#newCameraMatrixL, roi_L = cv2.getOptimalNewCameraMatrix(camera_matrixL, dist_coeffsL, frameSize, 0, frameSize)
+
 retvalR, camera_matrixR, dist_coeffsR, rvecsR, tvecsR = cv2.aruco.calibrateCameraCharuco(allCornersR, allIdsR, board, frameSize, None, None)
+#newCameraMatrixR, roi_R = cv2.getOptimalNewCameraMatrix(camera_matrixR, dist_coeffsR, frameSize, 0, frameSize)
 
 # Save calibration data
 np.save('calibration_data/camera_matrixL.npy', camera_matrixL)
@@ -95,10 +138,14 @@ np.save('calibration_data/dist_coeffsR.npy', dist_coeffsL)
 np.save('calibration_data/camera_matrixR.npy', camera_matrixR)
 np.save('calibration_data/dist_coeffsR.npy', dist_coeffsR)
 
-
+'''
 # shows undistorted image left
 image_l = cv2.imread("images/test/left/test.jpg")
 undistorted_image_l = cv2.undistort(image_l, camera_matrixL, dist_coeffsL)
+cv2.imshow("undistorted image left", undistorted_image_l)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+exit()
 
 # shows undistorted image right
 image_r = cv2.imread("images/test/right/test.jpg")
@@ -120,7 +167,7 @@ ax[1, 1].set_title("Undistorted Image Right")
 ax[1, 1].axis('off')
 plt.show()
 
-'''
+
 #make gif
 image_files = glob.glob('/Users/antonia/Desktop/gif_L/*.jpg')
 counter = 0
@@ -132,6 +179,38 @@ for image_file in image_files:
 
 '''
 
-#allCorners,allIds,imsize
 
 
+########## Stereo Vision Calibration #############################################
+
+flags = 0
+flags |= cv2.CALIB_FIX_INTRINSIC
+# Here we fix the intrinsic camara matrixes so that only Rot, Trns, Emat and Fmat are calculated.
+# Hence intrinsic parameters are the same 
+
+criteria_stereo= (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+
+# This step is performed to transformation between the two cameras and calculate Essential and Fundamenatl matrix
+ic(objpoints[0])
+ic(allCornersL[0])
+retStereo, newCameraMatrixL, distL, newCameraMatrixR, distR, rot, trans, essentialMatrix, fundamentalMatrix = cv2.stereoCalibrate(objpoints, allCornersL, allCornersR, camera_matrixL, dist_coeffsL, camera_matrixR, dist_coeffsR, frameSize, criteria_stereo, flags)
+ic(retStereo)
+ic(trans)
+ic(newCameraMatrixR)
+########## Stereo Rectification #################################################
+
+rectifyScale= 0
+rectL, rectR, projMatrixL, projMatrixR, Q, roi_L, roi_R= cv2.stereoRectify(newCameraMatrixL, distL, newCameraMatrixR, distR, grayL.shape[::-1], rot, trans, rectifyScale,(0,0))
+
+stereoMapL = cv2.initUndistortRectifyMap(newCameraMatrixL, distL, rectL, projMatrixL, grayL.shape[::-1], cv2.CV_16SC2)
+stereoMapR = cv2.initUndistortRectifyMap(newCameraMatrixR, distR, rectR, projMatrixR, grayR.shape[::-1], cv2.CV_16SC2)
+
+print("Saving parameters!")
+cv_file = cv2.FileStorage('calibration_data/stereoMap.xml', cv2.FILE_STORAGE_WRITE)
+
+cv_file.write('stereoMapL_x',stereoMapL[0])
+cv_file.write('stereoMapL_y',stereoMapL[1])
+cv_file.write('stereoMapR_x',stereoMapR[0])
+cv_file.write('stereoMapR_y',stereoMapR[1])
+
+cv_file.release()

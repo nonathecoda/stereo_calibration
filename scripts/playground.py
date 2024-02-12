@@ -5,15 +5,15 @@ import cv2
 
 # Camera parameters to undistort and rectify images
 cv_file = cv2.FileStorage()
-cv_file.open('/Users/antonia/dev/masterthesis/stereo_calibration/stereoMap.xml', cv2.FileStorage_READ)
+cv_file.open('/Users/antonia/dev/masterthesis/stereo_calibration/calibration_data/stereoMap.xml', cv2.FileStorage_READ)
 
 stereoMapL_x = cv_file.getNode('stereoMapL_x').mat()
 stereoMapL_y = cv_file.getNode('stereoMapL_y').mat()
 stereoMapR_x = cv_file.getNode('stereoMapR_x').mat()
 stereoMapR_y = cv_file.getNode('stereoMapR_y').mat()
 
-frame_right = cv2.imread("/Users/antonia/dev/masterthesis/stereo_calibration/images/right/2021-11-15_22-53-53.jpg")
-frame_left = cv2.imread("/Users/antonia/dev/masterthesis/stereo_calibration/images/left/2021-11-15_22-53-53.jpg")
+frame_right = cv2.imread("images/test/right/test.jpg")
+frame_left = cv2.imread("images/test/left/test.jpg")
 
 ic(frame_right.shape)
 ic(frame_left.shape)
