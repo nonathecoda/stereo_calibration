@@ -7,7 +7,7 @@ import glob
 
 ################ FIND CHESSBOARD CORNERS - OBJECT POINTS AND IMAGE POINTS #############################
 
-chessboardSize = (6,8) #vertical inner corners and horizontal inner corners
+chessboardSize = (13,18) #vertical inner corners and horizontal inner corners
 # frameSize = (2464,3280) which one??
 frameSize = (3280,2464)
 
@@ -22,7 +22,7 @@ objp[:,:2] = np.mgrid[0:chessboardSize[0],0:chessboardSize[1]].T.reshape(-1,2)
 
 ic(objp)
 
-size_of_chessboard_squares_mm = 24
+size_of_chessboard_squares_mm = 27
 objp = objp * size_of_chessboard_squares_mm
 
 # Arrays to store object points and image points from all the images.
@@ -30,15 +30,13 @@ objpoints = [] # 3d point in real world space
 imgpointsL = [] # 2d points in image plane.
 imgpointsR = [] # 2d points in image plane.
 
-imagesLeft = sorted(glob.glob('images/checkerboard/left/*.jpg'))
-imagesRight = sorted(glob.glob('images/checkerboard/right/*.jpg'))
+imagesLeft = sorted(glob.glob('images/test/left/*.jpg'))
+imagesRight = sorted(glob.glob('images/test/right/*.jpg'))
 
 for imgLeft, imgRight in zip(imagesLeft, imagesRight):
 
     imgL = cv.imread(imgLeft)
     imgR = cv.imread(imgRight)
-    
-    ic(imgLeft)
     
     grayL = cv.cvtColor(imgL, cv.COLOR_BGR2GRAY)
     grayR = cv.cvtColor(imgR, cv.COLOR_BGR2GRAY)
@@ -46,10 +44,10 @@ for imgLeft, imgRight in zip(imagesLeft, imagesRight):
     # Find the chess board corners
     retL, cornersL = cv.findChessboardCorners(grayL, chessboardSize, None)
     retR, cornersR = cv.findChessboardCorners(grayR, chessboardSize, None)
-    ic(retL, retR)
+
     # If found, add object points, image points (after refining them)
     if retL and retR == True:
-
+        ic('checkerboard found')
         objpoints.append(objp)
 
         cornersL = cv.cornerSubPix(grayL, cornersL, (11,11), (-1,-1), criteria)
@@ -59,11 +57,11 @@ for imgLeft, imgRight in zip(imagesLeft, imagesRight):
         imgpointsR.append(cornersR)
 
         # Draw and display the corners
-        #cv.drawChessboardCorners(imgL, chessboardSize, cornersL, retL)
-        #cv.imshow('img left', imgL)
-        #cv.drawChessboardCorners(imgR, chessboardSize, cornersR, retR)
-        #cv.imshow('img right', imgR)
-        #cv.waitKey(1000)
+        cv.drawChessboardCorners(imgL, chessboardSize, cornersL, retL)
+        cv.imshow('img left', imgL)
+        cv.drawChessboardCorners(imgR, chessboardSize, cornersR, retR)
+        cv.imshow('img right', imgR)
+        cv.waitKey(1000)
     else:
         ic("No corners found for this image pair: " + imgLeft)
 
@@ -73,6 +71,7 @@ cv.destroyAllWindows()
 
 retL, cameraMatrixL, distL, rvecsL, tvecsL = cv.calibrateCamera(objpoints, imgpointsL, frameSize, None, None)
 heightL, widthL, channelsL = imgL.shape
+
 #newCameraMatrixL, roi_L = cv.getOptimalNewCameraMatrix(cameraMatrixL, distL, (widthL, heightL), 1, (widthL, heightL))
 
 retR, cameraMatrixR, distR, rvecsR, tvecsR = cv.calibrateCamera(objpoints, imgpointsR, frameSize, None, None)

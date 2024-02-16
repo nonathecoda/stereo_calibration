@@ -3,8 +3,8 @@ import cv2 as cv
 from icecream import ic
 import os
 
-img_folder = "images/charuco_5x5_art_people/before_split/"
-output_folder ="images/charuco_5x5_art_people/"
+img_folder = "images/test/before_split/"
+output_folder ="images/test/"
 
 #### delete previews ####
 # Loop over each file in the directory
